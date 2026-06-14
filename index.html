@@ -515,6 +515,7 @@ function finishFlash(){
 
 /* ---------- PDF (local only) ---------- */
 let pdfState={name:null,page:1,doc:null};
+let loadedPdfSet=new Set();
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("takkenPDF",1);r.onupgradeneeded=()=>r.result.createObjectStore("files");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 function idbPut(k,v){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction("files","readwrite");t.objectStore("files").put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);}));}
 function idbGet(k){return idb().then(db=>new Promise((res,rej)=>{const t=db.transaction("files","readonly");const q=t.objectStore("files").get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);}));}
@@ -531,13 +532,21 @@ async function renderLoadedPdfs(){
   const box=document.getElementById("loadedPdfs");if(!box)return;
   let keys=[];try{keys=await idbKeys();}catch(e){}
   const names=keys.filter(k=>String(k).startsWith("pdf:")).map(k=>String(k).slice(4));
+  loadedPdfSet=new Set(names);
   box.innerHTML = names.length? names.map(n=>`<span class="t">${n}</span>`).join("") : `<span class="small">未読み込み</span>`;
 }
 function setupPdfBtn(btn,q){
   if(!q.pdf||!q.page){btn.classList.add("hide");return;}
   btn.classList.remove("hide");
-  btn.textContent="📄 教材PDF（"+q.pdf+" p."+q.page+"）を見る";
-  btn.onclick=()=>openPdf(q.pdf,q.page);
+  if(loadedPdfSet.has(q.pdf)){
+    btn.style.opacity="1";
+    btn.textContent="📄 教材PDF（"+q.pdf+" p."+q.page+"）を見る";
+    btn.onclick=()=>openPdf(q.pdf,q.page);
+  }else{
+    btn.style.opacity="0.8";
+    btn.textContent="📄 この問題の原本「"+q.pdf+"」は未読込（タップで読み込む）";
+    btn.onclick=()=>document.getElementById("pdfin").click();
+  }
 }
 async function openPdf(name,page){
   const buf=await idbGet("pdf:"+name);
@@ -615,12 +624,15 @@ function pickR7(choice){
   setupR7Pdf(it);
   const nb=document.getElementById("rnextBtn");nb.classList.remove("hide");nb.textContent=(s.i+1>=s.list.length)?"結果を見る":"次へ →";
 }
+function r7PdfBtn(btn,name,page,label){
+  if(!page){btn.classList.add("hide");return;}
+  btn.classList.remove("hide");
+  if(loadedPdfSet.has(name)){btn.style.opacity="1";btn.textContent="📄 "+label+"（"+name+" p."+page+"）を見る";btn.onclick=()=>openPdf(name,page);}
+  else{btn.style.opacity="0.8";btn.textContent="📄 "+name+" は未読込（タップで読み込む）";btn.onclick=()=>document.getElementById("pdfin").click();}
+}
 function setupR7Pdf(it){
-  const qb=document.getElementById("rqpdf"),ab=document.getElementById("rapdf");
-  if(it.qpage){qb.classList.remove("hide");qb.textContent="📄 問題PDF（r7_question.pdf p."+it.qpage+"）を見る";qb.onclick=()=>openPdf("r7_question.pdf",it.qpage);}
-  else qb.classList.add("hide");
-  if(it.apage){ab.classList.remove("hide");ab.textContent="📄 解説PDF（r7_answer.pdf p."+it.apage+"）を見る";ab.onclick=()=>openPdf("r7_answer.pdf",it.apage);}
-  else ab.classList.add("hide");
+  r7PdfBtn(document.getElementById("rqpdf"),"r7_question.pdf",it.qpage,"問題PDF");
+  r7PdfBtn(document.getElementById("rapdf"),"r7_answer.pdf",it.apage,"解説PDF");
 }
 function rNext(){const s=session;s.i++;if(s.i>=s.list.length)return finishR7();renderR7();}
 function finishR7(){
