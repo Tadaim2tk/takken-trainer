@@ -543,12 +543,12 @@ async function openPdf(name,page){
   const buf=await idbGet("pdf:"+name);
   if(!buf){alert("この教材（"+name+"）はまだ読み込まれていません。ホームの「教材PDFを読み込む」から追加してください。");return;}
   if(!window.pdfjsLib){
-    try{await loadScript(`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VER}/pdf.min.js`);
-      pdfjsLib.GlobalWorkerOptions.workerSrc=`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VER}/pdf.worker.min.js`;
+    try{await loadScript(`https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/build/pdf.min.js`);
+      pdfjsLib.GlobalWorkerOptions.workerSrc=`https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/build/pdf.worker.min.js`;
     }catch(e){alert("PDF表示ライブラリの読み込みに失敗しました（ネット接続が必要です）。");return;}
   }
   try{
-    const task=pdfjsLib.getDocument({data:buf.slice(0),cMapUrl:`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VER}/cmaps/`,cMapPacked:true});
+    const task=pdfjsLib.getDocument({data:buf.slice(0),cMapUrl:`https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/cmaps/`,cMapPacked:true});
     pdfState.doc=await task.promise;pdfState.name=name;pdfState.page=Math.min(page,pdfState.doc.numPages);
     document.getElementById("pdfModal").classList.remove("hide");
     await drawPdf();
